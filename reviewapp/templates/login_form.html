@@ -1,19 +1,17 @@
-{% include 'header.html' %}
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-
-
+</head>
 <body>
-<a href="/dev">Cam under development</a> <br><br>
-<a href="/login_form">Prn Login</a><br><br>
-<a href="/train">Train</a>
+    <form action="/login_form_validate/" method="post">
+        {% csrf_token %}
+        Enter your prn<input name="stud_prn" type="text">
+        <input type="submit" value="Submit">
 
+    </form>
 </body>
-
 </html>

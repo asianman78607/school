@@ -1,0 +1,154 @@
+{% include 'header.html' %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        video {
+            margin: auto;
+            display: block;
+            border: 20px solid rebeccapurple;
+            height: 522px;
+            width: 690px;
+        }
+
+        #video_buttons {
+
+            display: flex;
+            justify-content: center;
+        }
+
+        #video_buttons,
+        button {
+            font-size: 25px;
+            padding: 2px;
+            margin: 5px 10px;
+        }
+
+        #canvas {
+            border: 5px solid rgb(27, 224, 224);
+            height: 522px;
+            width: 690px;
+            margin: auto;
+            display: block;
+        }
+        #canvas2 {
+            border: 5px solid rgb(27, 224, 224);
+            height: 522px;
+            width: 690px;
+            margin: auto;
+            display: block;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="cam_div">
+        <video id='myvideo' src=""> </video>
+        <div id="video_buttons">
+            <button id="start">START</button>
+            <button id="close">STOP</button>
+        </div>
+        <canvas id="canvas"> </canvas>
+        <canvas id="canvas2"> </canvas>
+        <div>
+        </div>
+    </div>
+    
+    {% csrf_token %}
+    <script>
+        let video = document.getElementById('myvideo')
+        let close_button = document.getElementById('close')
+        let start_button = document.getElementById('start')
+        let canvas = document.getElementById('canvas');
+        let canvas2 = document.getElementById('canvas2');
+        let context = canvas.getContext("2d");
+        let context2 = canvas2.getContext("2d");
+        var processing_img;
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+
+        start_button.addEventListener('click', function startvideo() {
+            start_button.removeEventListener('click',startvideo)
+            navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+                video.srcObject = stream;
+                video.play()
+                close_button.addEventListener('click', function stopvideo() {
+                    
+                    stream.getTracks()[0].stop();
+                    clearInterval(processing_img)
+                    context.fillStyle = "#ffffff";
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+                    start_button.addEventListener('click',startvideo)
+
+                })
+
+
+                processing_img = setInterval(function take_picture() {
+
+                    context2.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    let data = canvas2.toDataURL("image/jpeg", 1.0);
+                    data = data.split(',')[1];
+
+                    fetch('/get_img/', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest', //Necessary to work with request.is_ajax()
+                            'X-CSRFToken': csrftoken,
+                        },
+                        body: JSON.stringify({ 'post_data': data }) //JavaScript object of data to POST
+                    })
+                        .then(response => {
+                            return response.json()
+                        })
+                        .then(rec_data => {
+                            let img = new Image()
+                            img.onload = function () {
+                                context.drawImage(img, 0, 0, canvas.width, canvas.height)
+                            }
+                            img.src = Object.values(rec_data)[0]
+
+
+                        })
+                }, 100)
+
+            })
+
+        });
+
+
+
+    </script>
+</body>
+
+</html>
